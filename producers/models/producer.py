@@ -85,8 +85,8 @@ class Producer:
             try:
                 future.result()
                 logger.info("topic created")
-            except Exception as err:
-                logger.fatal("failed to create topic %s: %s", topic, err)
+            except Exception as e:
+                logger.fatal("failed to create topic %s: %s", topic, e)
 
     def time_millis(self):
         return int(round(time.time() * 1000))
