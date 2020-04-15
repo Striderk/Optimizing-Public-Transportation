@@ -25,6 +25,8 @@ def configure_connector():
     # using incrementing mode, with `stop_id` as the incrementing column name.
     # Make sure to think about what an appropriate topic prefix would be, and how frequently Kafka
     # Connect should run this connector (hint: not very often!)
+    if resp.status_code == 404:
+        logging.warning("Connector %s doesn't exist, creating it now", CONNECTOR_NAME)
         return
 
     # TODO: Complete the Kafka Connect Config below.
