@@ -92,8 +92,8 @@ class KafkaConsumer:
         #
         try:
             message = self.consumer.poll(self.consume_timeout)
-        except error:
-            logger.error(f'Could not poll message from {self.topic_name_pattern}')
+        except Exception as e:
+            logger.fatal(f'Could not poll message from {self.topic_name_pattern} %s', e)
             return 0
         if message is None:
             logger.debug("Message was None")
