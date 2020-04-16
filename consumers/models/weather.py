@@ -20,4 +20,13 @@ class Weather:
         #
         # TODO: Process incoming weather messages. Set the temperature and status.
         #
-        #
+        if "com.udacity.kafka.producer.weather.v1" in message.topic():
+
+            v = message.value()
+
+            self.temperature = v['temperature']
+            self.status = v['status']
+            logger.debug("Weather message received, temp: %s , status: %s", self.temperature, self.status)
+
+        else:
+            logger.warning("Discarding message as it is not weather data")

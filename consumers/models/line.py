@@ -56,7 +56,7 @@ class Line:
 
     def process_message(self, message):
         """Given a kafka message, extract data"""
-        logger.debug("message key: %s, value: %s, topic: %s", message.key(), message.vaue(), message.topic())
+        logger.debug("message key: %s, value: %s, topic: %s", message.key(), message.value(), message.topic())
         # TODO: Based on the message topic, call the appropriate handler.
         if message.topic() == "connect-stations.transformed": # Set the conditional correctly to the stations Faust Table
             logger.debug("Message is from stations topic")
@@ -66,7 +66,7 @@ class Line:
             except Exception as e:
                 logger.fatal("bad station? %s, %s", value, e)
         elif message.topic() == "com.udacity.kafka.producer.arrivals.v1": # Set the conditional to the arrival topic
-            logger.debug("Message is from arrival topics")
+            logger.debug("Message is from arrival topic")
             self._handle_arrival(message)
         elif "turnstile_summary" in message.topic(): # Set the conditional to the KSQL Turnstile Summary Topic
             logger.debug("Message is from turnstile_summary topic")
