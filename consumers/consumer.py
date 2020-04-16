@@ -1,5 +1,7 @@
 """Defines core consumer functionality"""
 import logging
+import json
+import re
 
 import confluent_kafka
 from confluent_kafka import Consumer, OFFSET_BEGINNING
@@ -10,7 +12,6 @@ from tornado import gen
 
 logger = logging.getLogger(__name__)
 
-BROKER_URL = "PLAINTEXT://kafka0:9092"
 
 class KafkaConsumer:
     """Defines the base kafka consumer class"""
@@ -37,18 +38,27 @@ class KafkaConsumer:
         # and use the Host URL for Kafka and Schema Registry!
         #
         #
+        self.group_id = "".join(re.findall("[a-zA-Z]+", topic_name_pattern))
+
+        print(self.group_id)
         self.broker_properties = {
-            "bootstrap.servers": BROKER_URL,
-            "group.id": f'{topic_name_pattern}',
-            "default.topic.config": {"auto.offset.reset": "earliest"}
+            "group.id": self.group_id,
+            "bootstrap.servers": "PLAINTEXT://localhost:9092",
+            "auto.offset.reset": "earliest",
         }
+
+        logger.info('%s', json.dumps(self.broker_properties))
 
         # TODO: Create the Consumer, using the appropriate type.
         if is_avro is True:
+            logger.info("Creating AvroConsumer with group.id %s", self.broker_properties['group.id'])
             self.broker_properties["schema.registry.url"] = "http://localhost:8081"
             self.consumer = AvroConsumer(self.broker_properties)
+            logger.info("Successfully AvroConsumer with group.id %s", self.broker_properties['group.id'])
         else:
+            logger.info("Creating Consumer with group.id %s", self.broker_properties['group.id'])
             self.consumer = Consumer(self.broker_properties)
+            logger.info("Created Consumer with group.id %s", self.broker_properties['group.id'])
 
         #
         #
@@ -65,13 +75,16 @@ class KafkaConsumer:
         """Callback for when topic assignment takes place"""
         # TODO: If the topic is configured to use `offset_earliest` set the partition offset to
         # the beginning or earliest
-        logger.info("on_assign is incomplete - skipping")
-        for partition in partitions:
-            if self.offset_earliest is True:
+        logger.debug("on_assign called")
+
+        if self.offset_earliest:
+            for partition in partitions:
                 partition.offset = OFFSET_BEGINNING
 
-        logger.info("partitions assigned for %s", self.topic_name_pattern)
-        consumer.assign(partitions)
+            logger.info("partitions assigned for %s", self.topic_name_pattern)
+            consumer.assign(partitions)
+        else:
+            logger.debug("No partitions are assigned for consumer %s", consumer)
 
     async def consume(self):
         """Asynchronously consumes data from kafka topic"""
@@ -90,18 +103,17 @@ class KafkaConsumer:
         # is retrieved.
         #
         #
-        try:
-            message = self.consumer.poll(self.consume_timeout)
-        except Exception as e:
-            logger.fatal(f'Could not poll message from {self.topic_name_pattern} %s', e)
-            return 0
+        logger.debug("consuming from %s", self.topic_pattern)
+
+        message = self.consumer.poll(timeout=self.consume_timeout)
+
         if message is None:
-            logger.debug("Message was None")
+            logger.debug("Message was None in topic %s", self.topic_pattern)
             return 0
         elif message.error() is not None:
-            logger.debug("Message could not be consumed: {message.error()}")
-            return 0
+            logger.exception("Message could not be consumed: %s", message.error())
         else:
+            logger.debug("Message processed, key: %s , val: %s", message.key(), message.value())
             self.message_handler(message)
             return 1
 
@@ -113,5 +125,9 @@ class KafkaConsumer:
         # TODO: Cleanup the kafka consumer
         #
         #
-        logger.debug(f"{self.topic_name_pattern} closing")
-        self.consumer.close()
+        try:
+            self.consumer.close()
+        except Exception as e:
+            logger.exception("Cannot close consumer: ")
+
+        logger.debug('Consumer object closed successfully')

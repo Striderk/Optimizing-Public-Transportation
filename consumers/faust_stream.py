@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 
 # Faust will ingest records from Kafka in this format
-class Station(faust.Record):
+class Station(faust.Record, validation=True, serializer="json"):
     stop_id: int
     direction_id: str
     stop_name: str
@@ -22,7 +22,7 @@ class Station(faust.Record):
 
 
 # Faust will produce records to Kafka in this format
-class TransformedStation(faust.Record):
+class TransformedStation(faust.Record, validation=True, serializer="json"):
     station_id: int
     station_name: str
     order: int
@@ -58,7 +58,7 @@ async def transform(stations):
 
         line_array = [station.red, station.blue, station.green]
         if sum(line_array) == 0:
-            logger.warning("No line color for %s available. Skipping", station.stop_name)
+            logger.warning("No line color for stop %s available. Skipping...", station.stop_name)
             continue
         if line_array[0]:
             line = "red"
@@ -68,10 +68,10 @@ async def transform(stations):
             line = "green"
 
         table[station.station_id] = TransformedStation(
-            station_id = station.station_id,
-            station_name = station.station_name,
-            order = station.order,
-            line = line
+            station_id=station.station_id,
+            station_name=station.station_name,
+            order=station.order,
+            line=line
         )
 
 if __name__ == "__main__":

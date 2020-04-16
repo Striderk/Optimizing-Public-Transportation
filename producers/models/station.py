@@ -1,5 +1,6 @@
 """Methods pertaining to loading and configuring CTA "L" station data."""
 import logging
+import json
 from pathlib import Path
 
 from confluent_kafka import avro
@@ -37,9 +38,9 @@ class Station(Producer):
         # replicas
         #
         #
-        topic_name = f"com.udacity.station.arrival.v1" # TODO: Come up with a better topic name
+        topic_name = "com.udacity.kafka.producer.arrivals.v1" # TODO: Come up with a better topic name
         super().__init__(
-            topic_name = "com.udacity.station.arrival.v1",
+            topic_name,
             key_schema=Station.key_schema,
             value_schema=Station.value_schema, # TODO: Uncomment once schema is defined
             num_partitions=3,
@@ -62,19 +63,24 @@ class Station(Producer):
         # TODO: Complete this function by producing an arrival message to Kafka
         #
         #
-        logger.info("arrival kafka integration incomplete - skipping")
-        self.producer.produce(
-           topic=self.topic_name,
-           key={"timestamp": self.time_millis()},
-           value={
+        key={"timestamp": self.time_millis()}
+        value={
                "station_id": self.station_id,
                "train_id": train.train_id,
                "direction": direction,
                "line": self.color.name,
                "train_status": train.status.name,
                "prev_station_id": prev_station_id,
-               "prev_direciton": prev_direction
-           },
+               "prev_direction": prev_direction,
+        }
+
+        logger.info("Simulating train arrival to station %s at %s", self.name, key['timestamp'])
+        logger.info("Values for train arrivals are: %s ", json.dumps(value))
+
+        self.producer.produce(
+            topic=self.topic_name,
+            key=key,
+            value=value
         )
 
     def __str__(self):
